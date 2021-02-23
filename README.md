@@ -14,7 +14,7 @@ A python module to import and export DATEV files.
 
 | Datenkategorie                        | Status                   |
 |---------------------------------------|--------------------------|
-| Buchungsstapel                        | implemented, not tested  |
+| Buchungsstapel                        | version 9 implemented, not tested  |
 | Wiederkehrende Buchungen              | not implemented          |
 | Buchungstextkonstanten                | not implemented          |
 | Sachkontenbeschriftungen              | not implemented          |

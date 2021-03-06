@@ -11,6 +11,10 @@ from collections import UserDict
 import pandas as pd
 import pickle
 
+class DatevFormatError(ValueError):
+    '''Error for everything that conflicts with the DATEV file format specifications.'''
+    pass
+
 with open('./pyDATEV/format-specifications.dat', 'rb') as f:
     specifications = pickle.load(f)
 
@@ -40,30 +44,30 @@ class DatevEntry2(UserDict):
         if not value is None:
             if format_type == 'Betrag':
                 if not isinstance(value, float):
-                    raise TypeError("The value for key '{}' needs to be of type float.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type float.".format(key))
             elif format_type == 'Datum':
                 if not isinstance(value, datetime.date):
-                    raise TypeError("The value for key '{}' needs to be of type datetime.date.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type datetime.date.".format(key))
             elif format_type == 'Datum JJJJMMTT':
                 if not isinstance(value, datetime.date):
-                    raise TypeError("The value for key '{}' needs to be of type datetime.date.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type datetime.date.".format(key))
             elif format_type == 'Konto':
                 if not isinstance(value, str):
-                    raise TypeError("The value for key '{}' needs to be of type str.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type str.".format(key))
                 if not value.isdigit():
-                    raise TypeError("The value for key '{}' needs to be a string of digits.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be a string of digits.".format(key))
             elif format_type == 'Text':
                 if not isinstance(value, str):
-                    raise TypeError("The value for key '{}' needs to be of type str.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type str.".format(key))
             elif format_type == 'Zahl' and decimal_places == 0:
                 if not isinstance(value, int):
-                    raise TypeError("The value for key '{}' needs to be of type int.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type int.".format(key))
             elif format_type == 'Zahl' and decimal_places > 0:
                 if not isinstance(value, float):
-                    raise TypeError("The value for key '{}' needs to be of type float.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type float.".format(key))
             elif format_type == 'Zeitstempel':
                 if not isinstance(value, datetime.datetime):
-                    raise TypeError("The value for key '{}' needs to be of type datetime.datetime.".format(key))
+                    raise DatevFormatError("The value for key '{}' needs to be of type datetime.datetime.".format(key))
             else:
                 raise NotImplementedError("Unknown FormatType: {}".format(format_type))
         
@@ -121,7 +125,7 @@ class DatevEntry2(UserDict):
         
         if length > 0:
             if len(s.replace('"','')) > max_length:
-                raise RuntimeError("The value {} has {} characters, but DATEV file specification allows only {} characters for values at key {}.".format(s, len(s), max_length, key))
+                raise DatevFormatError("The value {} has {} characters, but the DATEV file specification allows only {} characters for values at key {}.".format(s, len(s), max_length, key))
         
         return s
 
@@ -214,7 +218,7 @@ class DatevDataCategory2(object):
         '''
         fn = os.path.split(filename)[1]
         if not fn[:5] == 'EXTF_' or not os.path.splitext(fn)[1] == '.csv':
-            raise ValueError("The Datev file specification require that the filename has the format EXTF_<arbitrary-name>.csv, e.g. EXTF_Buchungsstapel__<date_time>_<export number>.csv .")
+            raise DatevFormatError("The Datev file specification require that the filename has the format EXTF_<arbitrary-name>.csv, e.g. EXTF_Buchungsstapel__<date_time>_<export number>.csv .")
         with open(filename, 'w', encoding = 'ISO-8859-1') as f:
             f.write(self._metadata.serialize() + '\n')
             f.write(self.serialize_data())
@@ -293,13 +297,13 @@ class Buchungsstapel2(DatevDataCategory2):
         self._metadata = DatevEntry2(specifications['Metadaten']['Buchungsstapel']['Field'])
         if filename is None:
             if not wirtschaftsjahr_beginn <= datum_von < datum_bis < datetime.date(wirtschaftsjahr_beginn.year+1,wirtschaftsjahr_beginn.month,wirtschaftsjahr_beginn.day):
-                raise ValueError("The dates datum_von and datum_bis should be between wirtschaftsjahr_beginn and wirtschaftsjahr_beginn + 1 year.")  
+                raise DatevFormatError("The dates datum_von and datum_bis should be between wirtschaftsjahr_beginn and wirtschaftsjahr_beginn + 1 year.")  
             if not 4 <= sachkontennummernlänge <= 9:
-                raise ValueError("The sachkontennummernlänge needs to be between 4 and 9.")
+                raise DatevFormatError("The sachkontennummernlänge needs to be between 4 and 9.")
             if not 1 <= mandant <= 99999:
-                raise ValueError("The mandant number needs to be between 1 and 99999.")
+                raise DatevFormatError("The mandant number needs to be between 1 and 99999.")
             if not 1001 <= berater <= 9999999:
-                raise ValueError("The berater number needs to be between 1001 and 9999999.")
+                raise DatevFormatError("The berater number needs to be between 1001 and 9999999.")
             self._metadata['DATEV-Format-KZ'] = 'EXTF'
             self._metadata['Versionsnummer'] = 700
             self._metadata['Datenkategorie'] = 21
@@ -317,7 +321,7 @@ class Buchungsstapel2(DatevDataCategory2):
     def add_buchung(self, umsatz = None, soll_haben = None, konto = None, gegenkonto = None, belegdatum = None):
         '''Add Buchung to the batch. '''
         if len(self._data) == 99999:
-            raise RuntimeError("Datev file specification doesn't allow more than 99999 entries.")
+            raise DatevFormatError("Datev file specification doesn't allow more than 99999 entries.")
         entry = self.add_entry()
         entry['Umsatz (ohne Soll/Haben-Kz)'] = umsatz
         entry['Soll/Haben-Kennzeichen'] = soll_haben

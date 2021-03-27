@@ -130,11 +130,19 @@ class DatevEntry(UserDict):
         return s
 
     def serialize(self):
+        '''Convert data to a string as it is represented in a DATEV file. For the inverse operation, see self.parse().'''
         parts = [self.python2datev(field['Label']) for field in self._fields]
         return ';'.join(parts)
     
     def datev2python(self, key, string, year = None):
-        '''Parse a astring and save the content as a python datatype in self[key].'''
+        '''Parse a string containing a single datum from a DATEV-file and save the content as a python datatype in self[key].
+        
+        Parameters
+        ----------
+        key:    str, the field identifier
+        string: str, a single datum from a DATEV file  
+        year:   int, only required if the string contains a date
+        '''
         format_type = self._fields_dict[key]['FormatType']
         length = -1 if self._fields_dict[key]['Length'] is None else int(self._fields_dict[key]['Length'])
         decimal_places = int(self._fields_dict[key]['DecimalPlaces'])
@@ -168,6 +176,13 @@ class DatevEntry(UserDict):
         self[key] = value
     
     def parse(self, line, year = None):
+        '''Read a string of one line from a DATEV file, convert the content to python datatypes and store the results. For the inverse operation, see self.serialize().
+        
+        Parameters
+        ----------
+        line:   str
+        year:   int
+        '''
         values = line.split(';')
         if not len(values) == len(self._labels):
             raise IOError("Unable to parse line: " + line)

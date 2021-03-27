@@ -19,7 +19,7 @@ with open('./pyDATEV/format-specifications.dat', 'rb') as f:
     specifications = pickle.load(f)
 
 
-class DatevEntry2(UserDict):
+class DatevEntry(UserDict):
     '''A generic class for entries that are part of one of the data categories. The classes for entries of a specific data category should inherit from this class.
     An instance of this class bahaves almost like a dictionary, but instead of arbitrary keys, only specific keys are allowed, and instead of arbitrary datatypes for the values, only specific datatypes are allowed.'''
 
@@ -180,7 +180,7 @@ class DatevEntry2(UserDict):
 
 
 
-class DatevDataCategory2(object):
+class DatevDataCategory(object):
     '''This is the base class for Datev data categories. Each data category should inherit from this class.''' 
     
     def __init__(self, category_type, version):
@@ -190,7 +190,7 @@ class DatevDataCategory2(object):
             raise ValueError("Unknown category_type: " + category_type)
         if not self._version in specifications[category_type]:
             raise ValueError("Version {} unknown for category {}".format(self._version, category_type))
-        self._metadata = DatevEntry2(specifications['Metadaten']['Andere']['Field'])
+        self._metadata = DatevEntry(specifications['Metadaten']['Andere']['Field'])
         self._data = []
         
     def load(self, filename):
@@ -232,7 +232,7 @@ class DatevDataCategory2(object):
         return self._metadata
     
     def add_entry(self):
-        new_entry = DatevEntry2(specifications[self._category_type][self._version]['Field'])
+        new_entry = DatevEntry(specifications[self._category_type][self._version]['Field'])
         self._data.append(new_entry)
         return new_entry
     
@@ -274,10 +274,8 @@ class DatevDataCategory2(object):
 
 
 
-class Buchungsstapel2(DatevDataCategory2):
+class Buchungsstapel(DatevDataCategory):
     '''Datev Buchungsstapel'''
-    #Empfehlung: pro Buchungsperiode eine Textdatei
-    #Export-Dateiname: Muss Format EXTF_<beliebig>.csv haben, z.B. EXTF_Buchungsstapel__<Datum_Uhrzeit>_<LfdNr des Exportvorganges>.csv
    
     def __init__(self, filename = None, berater = None, mandant = None, wirtschaftsjahr_beginn = None, sachkontennummernlänge = None, datum_von = None, datum_bis = None, version = 9):
         '''If you specify the filename, the data will be loaded from there and the other parameters of this functions are ignored. If you don't specify the filename, a new empty Buchungsstapel will be created using the metadata of the other parameters. 
@@ -294,7 +292,7 @@ class Buchungsstapel2(DatevDataCategory2):
         version:    int, optional
         '''
         super().__init__("Buchungsstapel", version)
-        self._metadata = DatevEntry2(specifications['Metadaten']['Buchungsstapel']['Field'])
+        self._metadata = DatevEntry(specifications['Metadaten']['Buchungsstapel']['Field'])
         if filename is None:
             if not wirtschaftsjahr_beginn <= datum_von < datum_bis < datetime.date(wirtschaftsjahr_beginn.year+1,wirtschaftsjahr_beginn.month,wirtschaftsjahr_beginn.day):
                 raise DatevFormatError("The dates datum_von and datum_bis should be between wirtschaftsjahr_beginn and wirtschaftsjahr_beginn + 1 year.")  

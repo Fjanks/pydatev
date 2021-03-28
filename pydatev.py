@@ -46,10 +46,10 @@ class DatevEntry(UserDict):
                 if not isinstance(value, float):
                     raise DatevFormatError("The value for key '{}' needs to be of type float.".format(key))
             elif format_type == 'Datum':
-                if not isinstance(value, datetime.date):
+                if not type(value) is datetime.date: #Check with type(), because isinstance() would also accept datetime.datetime.
                     raise DatevFormatError("The value for key '{}' needs to be of type datetime.date.".format(key))
             elif format_type == 'Datum JJJJMMTT':
-                if not isinstance(value, datetime.date):
+                if not type(value) is datetime.date: #Check with type(), because isinstance() would also accept datetime.datetime.
                     raise DatevFormatError("The value for key '{}' needs to be of type datetime.date.".format(key))
             elif format_type == 'Konto':
                 if not isinstance(value, str):
@@ -74,12 +74,15 @@ class DatevEntry(UserDict):
         #set value
         super().__setitem__(key, value)
     
-    def valid(self):
+    def verify(self):
         '''Check whether all required fields are filled.'''
+        missing = []
         for field in self._fields:
             if int(field['Necessary']) == 1:
                 if self[field['Label']] is None:
-                    raise RuntimeError('Necessary value missing: ' + field['Label'])
+                    missing.append(field['Label'])
+        if len(missing) > 0:
+            raise DatevFormatError('The following necessary values are missing: ' + str(missing))
         return True
     
     def python2datev(self, key):
@@ -286,7 +289,26 @@ class DatevDataCategory(object):
             data.append(e)
             
         return pd.DataFrame(data, columns = self._data[0].keys())
-
+    
+    def verify(self):
+        '''Check wheter metadata and all entries are valid.'''
+        errors = []
+        if not self._metadata['DATEV-Format-KZ'] in ['DTVF','EXTF']:
+            errors.append("Metadata: DATEV-Format-KZ needs to be either DTVF or EXTF, but not " + str(self._metadata['DATEV-Format-KZ']))
+        try:
+            self._metadata.verify()
+        except DatevFormatError as dfe:
+            errors.append("Metadata: ", dfe.args[0])
+        for i,entry in enumerate(self._data):
+            try:
+                entry.verify()
+            except DatevFormatError as dfe:
+                errors.append("Entry {}: {}".format(i,dfe.args[0]))
+        if len(errors) == 0:
+            return True
+        else:
+            raise DatevFormatError("Invalid data.", errors)
+        
 
 
 class Buchungsstapel(DatevDataCategory):
@@ -343,18 +365,20 @@ class Buchungsstapel(DatevDataCategory):
         entry['Belegdatum'] = belegdatum
         return entry
     
-    def valid(self):
+    def verify(self):
         '''Check if all file format specifications are satisfied.'''
-        if not self._metadata.valid:
-            return False
-        if not self._metadata['DATEV-Format-KZ'] in ['DTVF','EXTF']:
-            raise False
-        #all entries need to be valid
-        for entry in self._data:
-            if not entry.valid:
-                return False
-        #all entries should be in the same wirtschaftsjahr as metadata['Wirtschaftsjahr-Beginn'] and between metadata['Datum von'] and metadata['Datum bis'] 
-        raise NotImplementedError
+        errors = [] 
+        try:
+            super().verify()
+        except DatevFormatError as dfe:
+            errors.extend(dfe.args[1])
+        for i,entry in enumerate(self._data):
+            if not self._metadata['Datum von'] <= entry['Belegdatum'] <= self._metadata['Datum bis']:
+                errors.append("The <Belegdatum> of Buchung {} is outside the specified time frame of this Buchungsstapel (from {} to {}).".format(i,str(self._metadata['Datum von']),str(self._metadata['Datum bis'])))
+        if len(errors) > 0:
+            raise DatevFormatError("Invalid data.", errors)
+        else:
+            return True
 
 
 

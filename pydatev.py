@@ -74,6 +74,19 @@ class DatevEntry(UserDict):
         #set value
         super().__setitem__(key, value)
     
+    def __repr__(self):
+        '''Show the date of the entry that is set, but not the fields that are set to None.'''
+        s = '{'
+        for label in self._labels:
+            if self[label] is None:
+                continue
+            s += "{}: {}, ".format(label, self[label])
+        s = s[:-2] + '}'
+        return s
+    
+    def __str__(self):
+        return self.__repr__()
+    
     def verify(self):
         '''Check whether all required fields are filled.'''
         missing = []

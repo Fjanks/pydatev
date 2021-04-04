@@ -8,14 +8,18 @@
 import os
 import datetime 
 from collections import UserDict
-import pandas as pd
 import pickle
+import pkg_resources
+try:
+    import pandas as pd
+except ImportError:
+    pass
 
 class DatevFormatError(ValueError):
     '''Error for everything that conflicts with the DATEV file format specifications.'''
     pass
 
-with open('./pyDATEV/format-specifications.dat', 'rb') as f:
+with pkg_resources.resource_stream(__name__, "format-specifications.dat") as f:
     specifications = pickle.load(f)
 
 
@@ -300,8 +304,10 @@ class DatevDataCategory(object):
             for key in entry.keys():
                 e.append(entry[key])
             data.append(e)
-            
-        return pd.DataFrame(data, columns = self._data[0].keys())
+        try:   
+            return pd.DataFrame(data, columns = self._data[0].keys())
+        except NameError:
+            raise RuntimeError("You need to install the python module 'pandas' to use this function.")
     
     def verify(self):
         '''Check wheter metadata and all entries are valid.'''

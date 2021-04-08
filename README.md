@@ -9,10 +9,8 @@ A python module to import and export DATEV files.
 
 ## Usage examples
 
-** Create a new DATEV file **
+### Load, edit and save a DATEV file
 
-
-** Load, edit and save a DATEV file **
 Suppose we have a DATEV file of category type Buchungsstapel. For the example, lets say we made some postings on account 6450 and later find out / decide that the postings after the first of April should actually go to account 6335. 
 ```python
 import pyDATEV as datev
@@ -31,7 +29,7 @@ for entry in buchungsstapel.data:
 buchungsstapel.save('./EXTF_Buchungsstapel-correct.csv')
 ```
 
-** Create a new DATEV file **
+### Create a new DATEV file
 
 ```python
 import pyDATEV as datev

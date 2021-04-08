@@ -7,6 +7,25 @@ A python module to import and export DATEV files.
 
 * python module [FinTech](https://www.joonis.de/de/fintech/doc/)
 
+## State of implementation
+
+
+| Datenkategorie                        | Status                   |
+|---------------------------------------|--------------------------|
+| Buchungsstapel                        | version 9 implemented, not tested  |
+| Wiederkehrende Buchungen              | not implemented          |
+| Buchungstextkonstanten                | not implemented          |
+| Sachkontenbeschriftungen              | not implemented          |
+| Konto-Notizen                         | not implemented          |
+| Debitoren-/Kreditoren                 | not implemented          |
+| Textschlüssel                         | not implemented          |
+| Zahlungsbedingungen                   | not implemented          |
+| Diverse Adressen                      | not implemented          |
+| Buchungssätze der Anlagenbuchführung  | not implemented          |
+| Filialen der Anlagenbuchführung       | not implemented          |
+
+
+
 ## Usage examples
 
 ### Load, edit and save a DATEV file
@@ -46,22 +65,3 @@ buchungsstapel.add_buchung(umsatz = 3567.66, soll_haben = 'H', konto = '55555', 
 # Save to DATEV file
 buchungsstapel.save('EXTF_blablub.csv')
 ```
-
-
-## State of implementation
-
-
-| Datenkategorie                        | Status                   |
-|---------------------------------------|--------------------------|
-| Buchungsstapel                        | version 9 implemented, not tested  |
-| Wiederkehrende Buchungen              | not implemented          |
-| Buchungstextkonstanten                | not implemented          |
-| Sachkontenbeschriftungen              | not implemented          |
-| Konto-Notizen                         | not implemented          |
-| Debitoren-/Kreditoren                 | not implemented          |
-| Textschlüssel                         | not implemented          |
-| Zahlungsbedingungen                   | not implemented          |
-| Diverse Adressen                      | not implemented          |
-| Buchungssätze der Anlagenbuchführung  | not implemented          |
-| Filialen der Anlagenbuchführung       | not implemented          |
-

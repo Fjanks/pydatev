@@ -12,7 +12,7 @@ A python module to import and export DATEV files.
 
 | Datenkategorie                        | Status                   |
 |---------------------------------------|--------------------------|
-| Buchungsstapel                        | version 9 implemented, not tested  |
+| Buchungsstapel                        | version 9 implemented, except Beleg-import/export  |
 | Wiederkehrende Buchungen              | not implemented          |
 | Buchungstextkonstanten                | not implemented          |
 | Sachkontenbeschriftungen              | not implemented          |
@@ -24,7 +24,11 @@ A python module to import and export DATEV files.
 | Buchungssätze der Anlagenbuchführung  | not implemented          |
 | Filialen der Anlagenbuchführung       | not implemented          |
 
+## Install
 
+```bash
+python3 -m pip install git+https://github.com/Fjanks/pydatev
+```
 
 ## Usage examples
 
@@ -32,7 +36,7 @@ A python module to import and export DATEV files.
 
 Suppose we have a DATEV file of category type Buchungsstapel. For the example, lets say we made some postings on account 6450 and later find out / decide that the postings after the first of April should actually go to account 6335. 
 ```python
-import pyDATEV as datev
+import pydatev as datev
 import datetime
 
 #Load data
@@ -51,7 +55,7 @@ buchungsstapel.save('./EXTF_Buchungsstapel-correct.csv')
 ### Create a new DATEV file
 
 ```python
-import pyDATEV as datev
+import pydatev as datev
 import datetime
 
 #Create a buchungsstapel

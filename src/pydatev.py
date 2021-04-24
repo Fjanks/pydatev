@@ -78,7 +78,7 @@ class DatevEntry(UserDict):
         #set value
         super().__setitem__(key, value)
     
-    def __repr__(self):
+    def __str__(self):
         '''Show the date of the entry that is set, but not the fields that are set to None.'''
         s = '{'
         for label in self._labels:
@@ -87,9 +87,6 @@ class DatevEntry(UserDict):
             s += "{}: {}, ".format(label, self[label])
         s = s[:-2] + '}'
         return s
-    
-    def __str__(self):
-        return self.__repr__()
     
     def verify(self):
         '''Check whether all required fields are filled.'''
@@ -333,19 +330,20 @@ class DatevDataCategory(object):
 class Buchungsstapel(DatevDataCategory):
     '''Datev Buchungsstapel'''
    
-    def __init__(self, filename = None, berater = None, mandant = None, wirtschaftsjahr_beginn = None, sachkontennummernlänge = None, datum_von = None, datum_bis = None, version = 9):
+    def __init__(self, filename = None, berater = None, mandant = None, wirtschaftsjahr_beginn = None, sachkontennummernlänge = None, datum_von = None, datum_bis = None, waehrungskennzeichen = None, version = 9):
         '''If you specify the filename, the data will be loaded from there and the other parameters of this functions are ignored. If you don't specify the filename, a new empty Buchungsstapel will be created using the metadata of the other parameters. 
         
         Parameters
         ----------
-        filename:   str
-        berater:    int
-        mandant:    int
+        filename:               str
+        berater:                int
+        mandant:                int
         wirtschaftsjahr_beginn: datetime.date
         sachkontennummernlänge: int
-        datum_von:  datetime.date
-        datum_bis:  datetime.date
-        version:    int, optional
+        datum_von:              datetime.date
+        datum_bis:              datetime.date
+        waehrungskennzeichen:   str, optional, but recommended
+        version:                int, optional
         '''
         super().__init__("Buchungsstapel", version)
         self._metadata = DatevEntry(specifications['Metadaten']['Buchungsstapel']['Field'])
@@ -369,9 +367,15 @@ class Buchungsstapel(DatevDataCategory):
             self._metadata['Sachkontennummernlänge'] = sachkontennummernlänge
             self._metadata['Datum von'] = datum_von
             self._metadata['Datum bis'] = datum_bis
+            self._metadata['Währungskennzeichen'] = waehrungskennzeichen
         else:
             self.load(filename)
-        
+    
+    def add_entry(self):
+        new_entry = super().add_entry()
+        new_entry['WKZ Umsatz'] = self._metadata['Währungskennzeichen'] #set default value
+        return new_entry
+    
     def add_buchung(self, umsatz = None, soll_haben = None, konto = None, gegenkonto = None, belegdatum = None):
         '''Add Buchung to the batch. '''
         if len(self._data) == 99999:

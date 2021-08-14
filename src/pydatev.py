@@ -201,8 +201,12 @@ class DatevEntry(UserDict):
         year:   int
         '''
         values = line.split(';')
-        if not len(values) == len(self._labels):
+        if len(values) < len(self._labels):
             raise IOError("Unable to parse line: " + line)
+        elif len(values) > len(self._labels):
+            ignore = values[len(self._labels):]
+            values = values[:len(self._labels)]
+            print("Warning: A line in the datev file has more columns than expected. The following columns are ignored: " + str(ignore))
         for field,value in zip(self._fields, values):
             self.datev2python(field['Label'], value, year)
     

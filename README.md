@@ -27,7 +27,9 @@ A python module to import and export DATEV files.
 ## Install
 
 ```bash
-python3 -m pip install git+https://github.com/Fjanks/pydatev
+git clone https://github.com/Fjanks/pydatev
+cd pydatev
+python setup.py install
 ```
 
 ## Usage examples

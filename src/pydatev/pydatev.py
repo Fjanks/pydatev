@@ -25,7 +25,7 @@ with pkg_resources.resource_stream(__name__, "format-specifications.dat") as f:
 
 class DatevEntry(UserDict):
     '''A generic class for entries that are part of one of the data categories. The classes for entries of a specific data category should inherit from this class.
-    An instance of this class bahaves almost like a dictionary, but instead of arbitrary keys, only specific keys are allowed, and instead of arbitrary datatypes for the values, only specific datatypes are allowed.'''
+    An instance of this class behaves almost like a dictionary, but instead of arbitrary keys, only specific keys are allowed, and instead of arbitrary datatypes for the values, only specific datatypes are allowed.'''
 
     def __init__(self, fields):
         super().__init__()
@@ -63,6 +63,8 @@ class DatevEntry(UserDict):
             elif format_type == 'Text':
                 if not isinstance(value, str):
                     raise DatevFormatError("The value for key '{}' needs to be of type str.".format(key))
+                if '"' in value:
+                    raise DatevFormatError("The value for key '{}' should not contain quotation marks.".format(key))
             elif format_type == 'Zahl' and decimal_places == 0:
                 if not isinstance(value, int):
                     raise DatevFormatError("The value for key '{}' needs to be of type int.".format(key))
@@ -381,7 +383,7 @@ class Buchungsstapel(DatevDataCategory):
         return new_entry
     
     def add_buchung(self, umsatz = None, soll_haben = None, konto = None, gegenkonto = None, belegdatum = None):
-        '''Add Buchung to the batch. '''
+        '''Add Buchung to the batch. All parameters are optional, but required to make the entry valid. If not specified, the entry will be created, but the required fields need to be filled later.'''
         if len(self._data) == 99999:
             raise DatevFormatError("Datev file specification doesn't allow more than 99999 entries.")
         entry = self.add_entry()

@@ -41,16 +41,16 @@ Suppose we have a DATEV file of category type Buchungsstapel. For the example, l
 import pydatev as datev
 import datetime
 
-#Load data
+# Load data
 buchungsstapel = datev.Buchungsstapel(filename = './EXTF_Buchungsstapel-incorrect.csv')
 
-#Correct mistake
+# Correct mistake
 d = datetime.date(2021,4,1)
 for entry in buchungsstapel.data:
     if entry['Kontonummer'] == 6450 and entry['Belegdatum'] > d:
         entry['Kontonummer'] = 6335
 
-#Save data
+# Save data
 buchungsstapel.save('./EXTF_Buchungsstapel-correct.csv')
 ```
 
@@ -60,7 +60,7 @@ buchungsstapel.save('./EXTF_Buchungsstapel-correct.csv')
 import pydatev as datev
 import datetime
 
-#Create a buchungsstapel
+# Create a buchungsstapel
 buchungsstapel = datev.Buchungsstapel(
     berater = 1001,
     mandant = 1,

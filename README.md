@@ -61,12 +61,33 @@ import pydatev as datev
 import datetime
 
 #Create a buchungsstapel
-buchungsstapel = datev.Buchungsstapel(berater = 1001, mandant = 1, wirtschaftsjahr_beginn = datetime.date(2021,1,1), sachkontennummernlänge = 4, datum_von = datetime.date(2021,1,1), datum_bis = datetime.date(2021,12,31))
+buchungsstapel = datev.Buchungsstapel(
+    berater = 1001,
+    mandant = 1,
+    wirtschaftsjahr_beginn = datetime.date(2021,1,1),
+    sachkontennummernlänge = 4,
+    datum_von = datetime.date(2021,1,1),
+    datum_bis = datetime.date(2021,12,31))
 
 # Add some nonsense data
-buchungsstapel.add_buchung(umsatz = 34.56, soll_haben = 'S', konto = '3333', gegenkonto = '1111', belegdatum = datetime.datetime.today())
-buchungsstapel.add_buchung(umsatz = 3.66, soll_haben = 'S', konto = '4683', gegenkonto = '9632', belegdatum = datetime.datetime.today())
-buchungsstapel.add_buchung(umsatz = 3567.66, soll_haben = 'H', konto = '55555', gegenkonto = '66666', belegdatum = datetime.datetime.today())
+buchungsstapel.add_buchung(
+    umsatz = 34.56,
+    soll_haben = 'S',
+    konto = '3333',
+    gegenkonto = '1111',
+    belegdatum = datetime.datetime.today())
+buchungsstapel.add_buchung(
+    umsatz = 3.66,
+    soll_haben = 'S',
+    konto = '4683',
+    gegenkonto = '9632',
+    belegdatum = datetime.datetime.today())
+buchungsstapel.add_buchung(
+    umsatz = 3567.66,
+    soll_haben = 'H',
+    konto = '55555',
+    gegenkonto = '66666',
+    belegdatum = datetime.datetime.today())
 
 # Save to DATEV file
 buchungsstapel.save('EXTF_blablub.csv')

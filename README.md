@@ -75,19 +75,19 @@ buchungsstapel.add_buchung(
     soll_haben = 'S',
     konto = '3333',
     gegenkonto = '1111',
-    belegdatum = datetime.datetime.today())
+    belegdatum = datetime.datetime.today().date())
 buchungsstapel.add_buchung(
     umsatz = 3.66,
     soll_haben = 'S',
     konto = '4683',
     gegenkonto = '9632',
-    belegdatum = datetime.datetime.today())
+    belegdatum = datetime.datetime.today().date())
 buchungsstapel.add_buchung(
     umsatz = 3567.66,
     soll_haben = 'H',
     konto = '55555',
     gegenkonto = '66666',
-    belegdatum = datetime.datetime.today())
+    belegdatum = datetime.datetime.today().date())
 
 # Save to DATEV file
 buchungsstapel.save('EXTF_blablub.csv')

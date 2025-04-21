@@ -172,7 +172,7 @@ class DatevEntry(UserDict):
         elif format_type == 'Betrag':
             value = float(string.replace(',', '.')) 
         elif format_type == 'Datum':
-            if length == 8 and ('FormatExpression' in self._fields_dict[key]) and (self._fields_dict[key]['FormatExpression'] == 'TTMM'):
+            if length == 4 and ('FormatExpression' in self._fields_dict[key]) and (self._fields_dict[key]['FormatExpression'] == 'TTMM'):
                 value = datetime.date(year, int(string[2:4]), int(string[0:2]))
             elif length == 8 and len(string) == 8:
                 value = datetime.date(int(string[4:8]), int(string[2:4]), int(string[0:2]))  
@@ -221,13 +221,7 @@ class DatevEntry(UserDict):
 class DatevDataCategory(object):
     '''This is the base class for Datev data categories. Each data category should inherit from this class.''' 
     
-    def __init__(self, category_type, version):
-        self._category_type = category_type
-        self._version = str(version)
-        if not category_type in specifications:
-            raise ValueError("Unknown category_type: " + category_type)
-        if not self._version in specifications[category_type]:
-            raise ValueError("Version {} unknown for category {}".format(self._version, category_type))
+    def __init__(self):
         self._metadata = DatevEntry(specifications['Metadaten']['Andere']['Field'])
         self._data = []
         
@@ -245,6 +239,12 @@ class DatevDataCategory(object):
         entry_lines = content[2:]
         
         self._metadata.parse(header_line)
+        
+        if not self._metadata['Formatname'] in specifications:
+            raise ValueError(f"The category_type {self._metadata['Formatname']} is not supported.")
+        if not str(self._metadata['Formatversion']) in specifications[self._metadata['Formatname']]:
+            raise ValueError(f"The Format version {self._metadata['Formatversion']} is not supported.")
+        
         self.parse_data(column_line, entry_lines)
         
     def save(self, filename):
@@ -270,7 +270,7 @@ class DatevDataCategory(object):
         return self._metadata
     
     def add_entry(self):
-        new_entry = DatevEntry(specifications[self._category_type][self._version]['Field'])
+        new_entry = DatevEntry(specifications[self._metadata['Formatname']][str(self._metadata['Formatversion'])]['Field'])
         self._data.append(new_entry)
         return new_entry
     
@@ -351,8 +351,7 @@ class Buchungsstapel(DatevDataCategory):
         waehrungskennzeichen:   str, optional, but recommended
         version:                int, optional
         '''
-        super().__init__("Buchungsstapel", version)
-        self._metadata = DatevEntry(specifications['Metadaten']['Buchungsstapel']['Field'])
+        super().__init__()
         if filename is None:
             if not wirtschaftsjahr_beginn <= datum_von < datum_bis < datetime.date(wirtschaftsjahr_beginn.year+1,wirtschaftsjahr_beginn.month,wirtschaftsjahr_beginn.day):
                 raise DatevFormatError("The dates datum_von and datum_bis should be between wirtschaftsjahr_beginn and wirtschaftsjahr_beginn + 1 year.")  
@@ -366,7 +365,7 @@ class Buchungsstapel(DatevDataCategory):
             self._metadata['Versionsnummer'] = 700
             self._metadata['Datenkategorie'] = 21
             self._metadata['Formatname'] = 'Buchungsstapel'
-            self._metadata['Formatversion'] = 9
+            self._metadata['Formatversion'] = version
             self._metadata['Berater'] = berater
             self._metadata['Mandant'] = mandant
             self._metadata['Wirtschaftsjahr-Beginn'] = wirtschaftsjahr_beginn

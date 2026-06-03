@@ -63,10 +63,6 @@ class DatevEntry(UserDict):
             elif format_type == 'Text':
                 if not isinstance(value, str):
                     raise DatevFormatError("The value for key '{}' needs to be of type str.".format(key))
-                # Quotation marks are legal inside DATEV Text fields
-                # (e.g. column "Beleglink" expects `BEDI "<UUID>"`).
-                # They are CSV-escaped by python2datev() via the
-                # standard doubled-quote convention.
             elif format_type == 'Zahl' and decimal_places == 0:
                 if not isinstance(value, int):
                     raise DatevFormatError("The value for key '{}' needs to be of type int.".format(key))
@@ -185,7 +181,9 @@ class DatevEntry(UserDict):
         elif format_type == 'Konto':
             value = string
         elif format_type == 'Text':
-            value = string.replace('"','')
+            # Inverse of python2datev: strip the outer wrapping quotes
+            # and un-double any embedded quotes (CSV-style escape).
+            value = string[1:-1].replace('""', '"')
         elif format_type == 'Zahl':
             if decimal_places == 0:
                 value = int(string)
@@ -354,6 +352,10 @@ class Buchungsstapel(DatevDataCategory):
         version:                int, optional
         '''
         super().__init__()
+        # Belege live in an attached Belegarchiv (pydatev._belege); set
+        # it up before any load() so save()/load() can manage belege.zip
+        # alongside the CSV.
+        self.belege = Belegarchiv(description="", generating_system="pydatev")
         if filename is None:
             if not wirtschaftsjahr_beginn <= datum_von < datum_bis < datetime.date(wirtschaftsjahr_beginn.year+1,wirtschaftsjahr_beginn.month,wirtschaftsjahr_beginn.day):
                 raise DatevFormatError("The dates datum_von and datum_bis should be between wirtschaftsjahr_beginn and wirtschaftsjahr_beginn + 1 year.")  
@@ -409,6 +411,47 @@ class Buchungsstapel(DatevDataCategory):
             raise DatevFormatError("Invalid data.", errors)
         else:
             return True
+
+    # ---- Belege (see pydatev._belege) ----------------------------------
+
+    def add_beleg(self, entry, filepath, belegtyp=None, *, guid=None,
+                  archive_name=None):
+        '''Attach a Beleg to a booking row. Adds the file to self.belege
+        (dedup by guid) and sets the row's CSV `Beleglink` column to
+        `BEDI "<UUID>"`. `filepath` may be a path or a ready-made Beleg.
+        `guid=`/`archive_name=` override the default (archive_name, blob)-
+        derived GUID — pass a stable business key as `guid=` when the GUID
+        must survive re-exports even if the file bytes change. Returns the
+        attached Beleg.'''
+        beleg = filepath if isinstance(filepath, Beleg) else Beleg(
+            filepath, belegtyp=belegtyp, guid=guid, archive_name=archive_name)
+        beleg = self.belege.add(beleg)  # dedup by guid
+        entry['Beleglink'] = 'BEDI "{}"'.format(beleg.guid)
+        return beleg
+
+    def save(self, filename):
+        '''Save the CSV; additionally write `belege.zip` next to it when
+        at least one Beleg is attached.'''
+        super().save(filename)
+        if self.belege.data:
+            zip_path = os.path.join(
+                os.path.dirname(filename) or ".", "belege.zip")
+            self.belege.save(zip_path)
+
+    def load(self, filename):
+        '''Load the CSV; additionally read `belege.zip` from the same
+        directory if present. A missing belege.zip is silent.'''
+        super().load(filename)
+        zip_path = os.path.join(
+            os.path.dirname(filename) or ".", "belege.zip")
+        if os.path.exists(zip_path):
+            self.belege.load(zip_path)
+
+
+# Imported at the bottom rather than the top to break the import cycle:
+# pydatev._belege imports DatevFormatError from this module, so this
+# module must be fully defined before _belege is loaded.
+from ._belege import Beleg, Belegarchiv  # noqa: E402
 
 
 

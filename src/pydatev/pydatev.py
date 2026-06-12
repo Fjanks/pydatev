@@ -445,11 +445,16 @@ class Buchungsstapel(DatevDataCategory):
     def load(self, filename):
         '''Load the CSV; additionally read `belege.zip` from the same
         directory if present. A missing belege.zip is silent.'''
+        # Load the csv file.
         super().load(filename)
-        zip_path = os.path.join(
-            os.path.dirname(filename) or ".", "belege.zip")
-        if os.path.exists(zip_path):
-            self.belege.load(zip_path)
+        
+        # Check if there is a zip file named belege.zip or Belege.Zip or similar variants and load the file.
+        filenames = os.listdir(os.path.dirname(filename))
+        filenames_lowercase = [f.lower() for f in filenames]
+        if 'belege.zip' in filenames_lowercase:
+            filename_zipfile = filenames[filenames_lowercase.index('belege.zip')]
+            path_zipfile = os.path.join(os.path.dirname(filename), filename_zipfile)
+            self.belege.load(path_zipfile)
 
 
 # Imported at the bottom rather than the top to break the import cycle:

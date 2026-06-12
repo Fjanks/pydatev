@@ -137,6 +137,7 @@ class Belegarchiv:
 
     _NAMESPACES = {
         "v04.0": "http://xml.datev.de/bedi/tps/document/v04.0",
+        "v05.0": "http://xml.datev.de/bedi/tps/document/v05.0",
         "v06.0": "http://xml.datev.de/bedi/tps/document/v06.0",
     }
     _XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -250,7 +251,7 @@ class Belegarchiv:
         ns = self._NAMESPACES[self.schema_version]
         ET.register_namespace("", ns)
         ET.register_namespace("xsi", self._XSI_NS)
-        ver = "4.0" if self.schema_version == "v04.0" else "6.0"
+        ver = "4.0" if self.schema_version == "v04.0" else ("5.0" if self.schema_version == "v05.0" else "6.0")
         # schema_version "v04.0" → "document_v040.xsd"
         # schema_version "v06.0" → "document_v060.xsd"
         xsd = "document_{}.xsd".format(

@@ -194,13 +194,14 @@ class DatevEntry(UserDict):
             value = datetime.datetime(int(t[:4]),int(t[4:6]),int(t[6:8]),int(t[8:10]),int(t[10:12]),int(t[12:14]),int(t[14:17]))
         self[key] = value
     
-    def parse(self, line, year = None):
+    def parse(self, line, year = None, linenumber = None):
         '''Read a string of one line from a DATEV file, convert the content to python datatypes and store the results. For the inverse operation, see self.serialize().
         
         Parameters
         ----------
         line:   str
         year:   int
+        linenumber: int
         '''
         values = line.split(';')
         if len(values) < len(self._labels):
@@ -210,7 +211,10 @@ class DatevEntry(UserDict):
             values = values[:len(self._labels)]
             print("Warning: A line in the datev file has more columns than expected. The following columns are ignored: " + str(ignore))
         for field,value in zip(self._fields, values):
-            self.datev2python(field['Label'], value, year)
+            try:
+                self.datev2python(field['Label'], value, year)
+            except Exception as e:
+                raise DatevFormatError(f'Parsing the csv file failed at line {linenumber+3} in field "{field['Label']}" (field value is "{value}"). {e.__class__.__name__}: {e.args[0]}.') 
     
     @property
     def required_keys(self):
@@ -282,9 +286,9 @@ class DatevDataCategory(object):
         column_line:    string
         entry_lines:    list of strings
         '''
-        for line in entry_lines:
+        for i, line in enumerate(entry_lines):
             new_entry = self.add_entry()
-            new_entry.parse(line, year = self._metadata['Wirtschaftsjahr-Beginn'].year)
+            new_entry.parse(line, year = self._metadata['Wirtschaftsjahr-Beginn'].year, linenumber = i)
             
     
     def serialize_data(self):

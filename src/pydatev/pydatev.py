@@ -63,8 +63,6 @@ class DatevEntry(UserDict):
             elif format_type == 'Text':
                 if not isinstance(value, str):
                     raise DatevFormatError("The value for key '{}' needs to be of type str.".format(key))
-                if '"' in value:
-                    raise DatevFormatError("The value for key '{}' should not contain quotation marks.".format(key))
             elif format_type == 'Zahl' and decimal_places == 0:
                 if not isinstance(value, int):
                     raise DatevFormatError("The value for key '{}' needs to be of type int.".format(key))
@@ -131,7 +129,7 @@ class DatevEntry(UserDict):
                 s = value
                 
             elif format_type == 'Text':
-                 s = '"' + value + '"'
+                 s = '"' + value.replace('"', '""') + '"'
                 
             elif format_type == 'Zahl':
                 s =  '{:.{}f}'.format(value, decimal_places).replace('.',',')
@@ -183,7 +181,7 @@ class DatevEntry(UserDict):
         elif format_type == 'Konto':
             value = string
         elif format_type == 'Text':
-            value = string.replace('"','')
+            value = string[1:-1].replace('""', '"')
         elif format_type == 'Zahl':
             if decimal_places == 0:
                 value = int(string)
@@ -194,13 +192,14 @@ class DatevEntry(UserDict):
             value = datetime.datetime(int(t[:4]),int(t[4:6]),int(t[6:8]),int(t[8:10]),int(t[10:12]),int(t[12:14]),int(t[14:17]))
         self[key] = value
     
-    def parse(self, line, year = None):
+    def parse(self, line, year = None, linenumber = None):
         '''Read a string of one line from a DATEV file, convert the content to python datatypes and store the results. For the inverse operation, see self.serialize().
         
         Parameters
         ----------
         line:   str
         year:   int
+        linenumber: int
         '''
         values = line.split(';')
         if len(values) < len(self._labels):
@@ -210,7 +209,10 @@ class DatevEntry(UserDict):
             values = values[:len(self._labels)]
             print("Warning: A line in the datev file has more columns than expected. The following columns are ignored: " + str(ignore))
         for field,value in zip(self._fields, values):
-            self.datev2python(field['Label'], value, year)
+            try:
+                self.datev2python(field['Label'], value, year)
+            except Exception as e:
+                raise DatevFormatError(f'Parsing the csv file failed at line {linenumber+3} in field "{field['Label']}" (field value is "{value}"). {e.__class__.__name__}: {e.args[0]}.') 
     
     @property
     def required_keys(self):
@@ -282,9 +284,9 @@ class DatevDataCategory(object):
         column_line:    string
         entry_lines:    list of strings
         '''
-        for line in entry_lines:
+        for i, line in enumerate(entry_lines):
             new_entry = self.add_entry()
-            new_entry.parse(line, year = self._metadata['Wirtschaftsjahr-Beginn'].year)
+            new_entry.parse(line, year = self._metadata['Wirtschaftsjahr-Beginn'].year, linenumber = i)
             
     
     def serialize_data(self):
@@ -352,6 +354,10 @@ class Buchungsstapel(DatevDataCategory):
         version:                int, optional
         '''
         super().__init__()
+        # Belege live in an attached Belegarchiv (pydatev._belege); set
+        # it up before any load() so save()/load() can manage belege.zip
+        # alongside the CSV.
+        self.belege = Belegarchiv(description="", generating_system="pydatev")
         if filename is None:
             if not wirtschaftsjahr_beginn <= datum_von < datum_bis < datetime.date(wirtschaftsjahr_beginn.year+1,wirtschaftsjahr_beginn.month,wirtschaftsjahr_beginn.day):
                 raise DatevFormatError("The dates datum_von and datum_bis should be between wirtschaftsjahr_beginn and wirtschaftsjahr_beginn + 1 year.")  
@@ -407,6 +413,52 @@ class Buchungsstapel(DatevDataCategory):
             raise DatevFormatError("Invalid data.", errors)
         else:
             return True
+
+    # ---- Belege (see pydatev._belege) ----------------------------------
+
+    def add_beleg(self, entry, filepath, belegtyp=None, *, guid=None,
+                  archive_name=None):
+        '''Attach a Beleg to a booking row. Adds the file to self.belege
+        (dedup by guid) and sets the row's CSV `Beleglink` column to
+        `BEDI "<UUID>"`. `filepath` may be a path or a ready-made Beleg.
+        `guid=`/`archive_name=` override the default (archive_name, blob)-
+        derived GUID — pass a stable business key as `guid=` when the GUID
+        must survive re-exports even if the file bytes change. Returns the
+        attached Beleg.'''
+        beleg = filepath if isinstance(filepath, Beleg) else Beleg(
+            filepath, belegtyp=belegtyp, guid=guid, archive_name=archive_name)
+        beleg = self.belege.add(beleg)  # dedup by guid
+        entry['Beleglink'] = 'BEDI "{}"'.format(beleg.guid)
+        return beleg
+
+    def save(self, filename):
+        '''Save the CSV; additionally write `belege.zip` next to it when
+        at least one Beleg is attached.'''
+        super().save(filename)
+        if self.belege.data:
+            zip_path = os.path.join(
+                os.path.dirname(filename) or ".", "belege.zip")
+            self.belege.save(zip_path)
+
+    def load(self, filename):
+        '''Load the CSV; additionally read `belege.zip` from the same
+        directory if present. A missing belege.zip is silent.'''
+        # Load the csv file.
+        super().load(filename)
+        
+        # Check if there is a zip file named belege.zip or Belege.Zip or similar variants and load the file.
+        filenames = os.listdir(os.path.dirname(filename))
+        filenames_lowercase = [f.lower() for f in filenames]
+        if 'belege.zip' in filenames_lowercase:
+            filename_zipfile = filenames[filenames_lowercase.index('belege.zip')]
+            path_zipfile = os.path.join(os.path.dirname(filename), filename_zipfile)
+            self.belege.load(path_zipfile)
+
+
+# Imported at the bottom rather than the top to break the import cycle:
+# pydatev._belege imports DatevFormatError from this module, so this
+# module must be fully defined before _belege is loaded.
+from ._belege import Beleg, Belegarchiv  # noqa: E402
 
 
 

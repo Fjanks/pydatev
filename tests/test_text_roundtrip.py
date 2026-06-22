@@ -11,6 +11,8 @@ import datetime
 
 import pytest
 
+import sys
+sys.path.append('src')
 import pydatev
 
 

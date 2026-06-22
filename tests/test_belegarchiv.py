@@ -9,6 +9,8 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
+import sys
+sys.path.append('src')
 import pydatev
 
 

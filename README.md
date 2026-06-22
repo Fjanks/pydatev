@@ -13,8 +13,7 @@ attached documentation files (Belege).
 
 | Datenkategorie                        | Status                   |
 |---------------------------------------|--------------------------|
-| Buchungsstapel                        | version 9-13 implemented |
-| Belegarchiv (Document Package)        | Document_v040 + v060 implemented (import + export) |
+| Buchungsstapel                        | version 9-13 implemented (including Belegarchiv v040-v060) |
 | Wiederkehrende Buchungen              | not implemented          |
 | Buchungstextkonstanten                | not implemented          |
 | Sachkontenbeschriftungen              | not implemented          |
@@ -97,10 +96,24 @@ buchungsstapel.save('EXTF_blablub.csv')
 
 ### Handling documentation files (Belege)
 
-A booking can carry an attached documentation file (Beleg) — a PDF
-invoice, a scanned receipt, etc. Attach one with `bs.add_beleg(...)`;
-`bs.save()` then writes a `belege.zip` next to the CSV automatically.
+DATEV's Belegtransfer format pairs a Buchungsstapel CSV (the
+booking lines) with a `belege.zip` ("Document Package") that
+contains the actual documentation files plus a `document.xml`
+manifest. Each booking row references its Beleg via the
+`Beleglink` column (a `BEDI "<UUID>"` provider-prefix string),
+and the same UUID appears as `<document guid="…">` in the
+manifest.
 
+pyDATEV implements both sides through three small components:
+
+| Component | Responsibility |
+|---|---|
+| `Beleg` | A single documentation file plus the metadata that `document.xml` needs (guid, archive filename, blob, belegtyp). Constructed from a path on disk. |
+| `Belegarchiv` | File manager: collects `Beleg` objects (idempotent by GUID), writes a `belege.zip` with a consistent `document.xml`, and reads the same back. Can be used stand-alone. |
+| `Buchungsstapel` | Owns a `Belegarchiv` at `self.belege`. Attach a Beleg to a row with `bs.add_beleg(entry, path)`; `bs.save(csv)` auto-writes `belege.zip` next to the CSV when needed. |
+
+
+#### Example: Create a new Buchungsstapel, add one entry, attach a file (Beleg) and save it:
 ```python
 import pydatev, datetime
 
@@ -119,25 +132,76 @@ entry = bs.add_buchung(umsatz=34.56, soll_haben='S',
 bs.add_beleg(entry, './invoice-001.pdf',
              belegtyp=pydatev.BELEGTYP_RECHNUNGSEINGANG)
 bs.save('EXTF_buchungsstapel.csv')  # → CSV + belege.zip alongside
+```
+
+#### Example: Load a Buchungsstapel with attached files, modify and save it:
+
+```python
+import pydatev 
 
 # Load back. belege.zip next to the CSV is picked up automatically.
 bs2 = pydatev.Buchungsstapel(filename='EXTF_buchungsstapel.csv')
+
+# … inspect or modify …
 for e in bs2.data:
     link = e['Beleglink']                  # 'BEDI "<UUID>"' or empty
     guid = link.split('"')[-2] if '"' in link else None
     beleg = bs2.belege.get_by_guid(guid) if guid else None
+    if beleg:
+        print(entry['Beleglink'], '->', beleg.filename, beleg.belegtyp)
+
+# Save modified data
+bs.save('./EXTF_buchungsstapel_modified.csv')
 ```
 
-The default Beleg GUID is a deterministic UUIDv8 (RFC 9562, SHA-256)
-over (archive_name, blob); pass `guid=` to `add_beleg`/`Beleg` to supply
-your own stable identity (e.g. a business key that must survive
-re-exports even if the bytes change). The derivation primitive is public
-as `pydatev.uuid8_from_sha256(namespace, *parts)`. `Belegarchiv.load()`
-does **not** validate — existing archives are trusted, so a round-trip
-`load(zip) → save(zip)` preserves blobs and filenames bit-identically.
-Standalone Belege without a corresponding Buchung are also supported
-(`bs.belege.add(beleg)` or `archive.add(...)` on a stand-alone
-`Belegarchiv`).
+#### Example: Load a Buchungsstapel and extract the attached files:
+```python
+import os
+import pydatev
 
-For a complete walkthrough — architecture, API reference, examples,
-and edge cases — see [File-handling.md](./File-handling.md).
+archive = pydatev.Belegarchiv(filename='./belege.zip')
+os.makedirs('./extracted/', exist_ok=True)
+for beleg in archive.data:
+    beleg.write_to('./extracted/')
+```
+
+#### Example: Deriving your own GUID
+
+The default GUID keys on `(archive_name, blob)`, so it changes if the
+file bytes change. When you need an identity that survives re-exports
+*even if the bytes change* (e.g. matching against an already-uploaded
+Beleg-Archiv), pass an explicit `guid=`. The same UUIDv8/SHA-256
+primitive pyDATEV uses internally is public:
+
+```python
+import uuid, pydatev
+NS = uuid.uuid5(uuid.NAMESPACE_URL, "https://example.org/my-app#beleg")
+guid = pydatev.uuid8_from_sha256(NS, b"INV-2025-0007")   # keyed on a business id
+beleg = pydatev.Beleg("./invoice.pdf", guid=guid)
+```
+
+
+#### Edge cases
+
+- **Same file on multiple bookings**: `bs.add_beleg(entry, path)` on a
+  second booking with byte-identical content under the same archive
+  name reuses the existing Beleg — dedup is by GUID, derived as
+  UUIDv8 over `(archive_name, sha256(blob))`. One Beleg in the ZIP;
+  both bookings share the same `Beleglink` GUID. Different content
+  under the same name, or the same content under different names,
+  yield distinct GUIDs (no silent collisions). To deliberately keep
+  one logical Beleg per booking even when bookings share a file, pass
+  a per-booking `guid=`.
+- **Orphan Belege on load**: if a `belege.zip` contains documents
+  that no booking row references, they remain in `bs.belege.data`
+  after load. Round-trip preserves them on the next save.
+- **`Belegarchiv.load()` does not validate**: Existing archives are trusted, so a round-trip
+`load(zip) → save(zip)` preserves blobs and filenames bit-identically.
+- **Stand-alone Belege without a booking**: just call
+  `bs.belege.add(pydatev.Beleg(path))` (or use a top-level
+  `pydatev.Belegarchiv` without a Buchungsstapel). Useful when
+  staging files before the matching booking exists, or when
+  re-saving an archive whose bookings are managed elsewhere.
+- **Empty archive**: `Belegarchiv.save()` refuses to write an empty
+  archive (DATEV consumers reject such files). `Buchungsstapel.save()`
+  simply skips the ZIP step if `bs.belege.data` is empty.

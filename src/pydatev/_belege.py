@@ -37,12 +37,6 @@ def uuid8_from_sha256(namespace: uuid.UUID, *parts: bytes) -> str:
     truncated to 128 bits, then the version (8) and variant (RFC 4122)
     bits are set per RFC 9562.
 
-    Used instead of uuid5() because uuid5() is fixed to SHA-1
-    internally, and SHA-1 has had practical collision attacks since
-    2017 (SHAttered) / 2020 (chosen-prefix). For non-adversarial
-    identifier derivation the 128-bit output bottleneck dominates
-    either way, but SHA-256 in the chain is the forward-looking choice.
-
     The caller fixes identity by choosing `parts`: a Beleg's default
     keys on (archive_name, blob); a caller wanting a stable business
     identity passes e.g. a transaction key instead.

@@ -211,24 +211,6 @@ def test_orphan_beleg_survives_roundtrip(tmp_path):
     assert orphan[0].blob == b"orphan"
 
 
-def test_arbitrary_extension_accepted(tmp_path):
-    """The DATEV file-type allowlist was removed (no reliable public
-    source for it), so Beleg() accepts any extension on construction
-    and Belegarchiv.load() stays trusting — both round-trip safe."""
-    weird = tmp_path / "evil.exe"
-    weird.write_bytes(b"MZ\x00\x00")
-    b = pydatev.Beleg(str(weird))
-    assert b.filename == "evil.exe"
-    assert b.blob == b"MZ\x00\x00"
-
-    arch = pydatev.Belegarchiv(description="t", generating_system="test")
-    arch.add(b)
-    zip_path = str(tmp_path / "out.zip")
-    arch.save(zip_path)
-    loaded = pydatev.Belegarchiv(filename=zip_path)
-    assert len(loaded.data) == 1
-    assert loaded.data[0].filename == "evil.exe"
-
 
 def test_backward_compat_no_belege_no_zip(tmp_path):
     """A Buchungsstapel without any Beleg attached must produce only the

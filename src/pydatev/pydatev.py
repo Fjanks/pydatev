@@ -181,8 +181,6 @@ class DatevEntry(UserDict):
         elif format_type == 'Konto':
             value = string
         elif format_type == 'Text':
-            # Inverse of python2datev: strip the outer wrapping quotes
-            # and un-double any embedded quotes (CSV-style escape).
             value = string[1:-1].replace('""', '"')
         elif format_type == 'Zahl':
             if decimal_places == 0:

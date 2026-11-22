@@ -8,6 +8,7 @@
 import os
 import datetime
 from collections import UserDict
+import decimal
 import pickle
 import pkg_resources
 
@@ -53,7 +54,7 @@ class DatevEntry(UserDict):
         decimal_places = int(self._fields_dict[key]["DecimalPlaces"])
         if value is not None:
             if format_type == "Betrag":
-                if not isinstance(value, float):
+                if not isinstance(value, (float, decimal.Decimal)):
                     raise DatevFormatError("The value for key '{}' needs to be of type float.".format(key))
             elif format_type == "Datum":
                 if (
@@ -497,8 +498,8 @@ class Buchungsstapel(DatevDataCategory):
         directory = os.path.dirname(filename) or os.curdir
         filenames = os.listdir(directory)
         filenames_lowercase = [f.lower() for f in filenames]
-        if 'belege.zip' in filenames_lowercase:
-            filename_zipfile = filenames[filenames_lowercase.index('belege.zip')]
+        if "belege.zip" in filenames_lowercase:
+            filename_zipfile = filenames[filenames_lowercase.index("belege.zip")]
             path_zipfile = os.path.join(directory, filename_zipfile)
             self.belege.load(path_zipfile)
 

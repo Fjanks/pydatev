@@ -205,3 +205,14 @@ beleg = pydatev.Beleg("./invoice.pdf", guid=guid)
 - **Empty archive**: `Belegarchiv.save()` refuses to write an empty
   archive (DATEV consumers reject such files). `Buchungsstapel.save()`
   simply skips the ZIP step if `bs.belege.data` is empty.
+
+
+## Development
+
+Linting, formatting and testing:
+
+```bash
+ruff check .
+ruff format .
+python3 -m pytest
+```

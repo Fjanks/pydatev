@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 130
+
+[tool.ruff.lint]
+ignore = ["E501","F401","F403"]
+
+[tool.ruff.format]
+docstring-code-format = true

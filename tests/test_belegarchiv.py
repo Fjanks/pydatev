@@ -10,11 +10,13 @@ import xml.etree.ElementTree as ET
 import pytest
 
 import sys
-sys.path.append('src')
+
+sys.path.append("src")
 import pydatev
 
 
 # ---------- Helpers ----------
+
 
 def _make_pdf(dirpath, name="test.pdf", content=b"%PDF-1.4 hello"):
     path = os.path.join(dirpath, name)
@@ -25,7 +27,8 @@ def _make_pdf(dirpath, name="test.pdf", content=b"%PDF-1.4 hello"):
 
 def _new_stapel():
     return pydatev.Buchungsstapel(
-        berater=1001, mandant=1,
+        berater=1001,
+        mandant=1,
         wirtschaftsjahr_beginn=datetime.date(2025, 1, 1),
         sachkontennummernlänge=4,
         datum_von=datetime.date(2025, 1, 1),
@@ -41,6 +44,7 @@ def _beleglink_guid(entry):
 
 # ---------- Tests ----------
 
+
 def test_attach_read_roundtrip_v040(tmp_path):
     """bs.add_beleg(entry, path, belegtyp) → save → load → the Beleg is
     recoverable via the row's Beleglink (filename, blob, belegtyp
@@ -49,9 +53,7 @@ def test_attach_read_roundtrip_v040(tmp_path):
     pdf = _make_pdf(str(tmp_path), name="doc-001.pdf", content=b"PAYLOAD")
 
     bs = _new_stapel()
-    entry = bs.add_buchung(
-        umsatz=10.0, soll_haben="S", konto="3333", gegenkonto="1111",
-        belegdatum=datetime.date(2025, 2, 1))
+    entry = bs.add_buchung(umsatz=10.0, soll_haben="S", konto="3333", gegenkonto="1111", belegdatum=datetime.date(2025, 2, 1))
     bs.add_beleg(entry, pdf, belegtyp=pydatev.BELEGTYP_RECHNUNGSEINGANG)
 
     csv_path = str(tmp_path / "EXTF_t.csv")
@@ -73,11 +75,8 @@ def test_add_beleg_accepts_ready_made_beleg(tmp_path):
     pdf = _make_pdf(str(tmp_path), name="VV-7.pdf", content=b"X")
     explicit = str(uuid.uuid4())
     bs = _new_stapel()
-    entry = bs.add_buchung(
-        umsatz=1.0, soll_haben="S", konto="3333", gegenkonto="1111",
-        belegdatum=datetime.date(2025, 2, 1))
-    beleg = bs.add_beleg(
-        entry, pydatev.Beleg(pdf, guid=explicit))
+    entry = bs.add_buchung(umsatz=1.0, soll_haben="S", konto="3333", gegenkonto="1111", belegdatum=datetime.date(2025, 2, 1))
+    beleg = bs.add_beleg(entry, pydatev.Beleg(pdf, guid=explicit))
     assert beleg.guid == explicit
     assert _beleglink_guid(entry) == explicit
 
@@ -96,8 +95,7 @@ def test_default_guid_is_stable_across_paths(tmp_path):
     b_a = pydatev.Beleg(filepath=pdf_a)
     b_b = pydatev.Beleg(filepath=pdf_b)
     assert b_a.guid == b_b.guid, (
-        f"Default GUID must be stable across paths for the same "
-        f"(archive_name, content); got {b_a.guid!r} vs {b_b.guid!r}"
+        f"Default GUID must be stable across paths for the same (archive_name, content); got {b_a.guid!r} vs {b_b.guid!r}"
     )
     # Explicit archive_name override matches the implicit one when
     # name AND content are equal.
@@ -121,8 +119,7 @@ def test_default_guid_distinguishes_different_content_same_name(tmp_path):
     b_a = pydatev.Beleg(filepath=pdf_a)
     b_b = pydatev.Beleg(filepath=pdf_b)
     assert b_a.guid != b_b.guid, (
-        "Same archive_name but different content must produce "
-        "different GUIDs (no silent filename collision)"
+        "Same archive_name but different content must produce different GUIDs (no silent filename collision)"
     )
 
 
@@ -148,8 +145,7 @@ def test_default_guid_distinguishes_same_content_different_name(tmp_path):
     b_a = pydatev.Beleg(filepath=pdf_a)
     b_b = pydatev.Beleg(filepath=pdf_b)
     assert b_a.guid != b_b.guid, (
-        "Same content but different archive_name must produce "
-        "different GUIDs (business identity lives in the filename)"
+        "Same content but different archive_name must produce different GUIDs (business identity lives in the filename)"
     )
 
 
@@ -172,12 +168,8 @@ def test_dedup_same_guid(tmp_path):
     both rows' Beleglink GUIDs match the same Beleg."""
     pdf = _make_pdf(str(tmp_path), name="shared.pdf")
     bs = _new_stapel()
-    e1 = bs.add_buchung(
-        umsatz=1.0, soll_haben="S", konto="3333", gegenkonto="1111",
-        belegdatum=datetime.date(2025, 2, 1))
-    e2 = bs.add_buchung(
-        umsatz=2.0, soll_haben="S", konto="3333", gegenkonto="1111",
-        belegdatum=datetime.date(2025, 2, 1))
+    e1 = bs.add_buchung(umsatz=1.0, soll_haben="S", konto="3333", gegenkonto="1111", belegdatum=datetime.date(2025, 2, 1))
+    e2 = bs.add_buchung(umsatz=2.0, soll_haben="S", konto="3333", gegenkonto="1111", belegdatum=datetime.date(2025, 2, 1))
     bs.add_beleg(e1, pdf)
     bs.add_beleg(e2, pdf)
 
@@ -192,9 +184,7 @@ def test_orphan_beleg_survives_roundtrip(tmp_path):
     pdf_orphan = _make_pdf(str(tmp_path), name="orph.pdf", content=b"orphan")
 
     bs = _new_stapel()
-    entry = bs.add_buchung(
-        umsatz=1.0, soll_haben="S", konto="3333", gegenkonto="1111",
-        belegdatum=datetime.date(2025, 2, 1))
+    entry = bs.add_buchung(umsatz=1.0, soll_haben="S", konto="3333", gegenkonto="1111", belegdatum=datetime.date(2025, 2, 1))
     bs.add_beleg(entry, pdf_referenced)
     # Add an orphan directly through the archive
     bs.belege.add(pydatev.Beleg(pdf_orphan))
@@ -211,19 +201,14 @@ def test_orphan_beleg_survives_roundtrip(tmp_path):
     assert orphan[0].blob == b"orphan"
 
 
-
 def test_backward_compat_no_belege_no_zip(tmp_path):
     """A Buchungsstapel without any Beleg attached must produce only the
     CSV (no belege.zip alongside), preserving pre-Beleg behavior.
     Proxy for determinism: saving twice produces the same bytes.
     """
     bs = _new_stapel()
-    bs.add_buchung(
-        umsatz=34.56, soll_haben="S", konto="3333", gegenkonto="1111",
-        belegdatum=datetime.date(2025, 2, 1))
-    bs.add_buchung(
-        umsatz=3.66, soll_haben="S", konto="4683", gegenkonto="9632",
-        belegdatum=datetime.date(2025, 2, 3))
+    bs.add_buchung(umsatz=34.56, soll_haben="S", konto="3333", gegenkonto="1111", belegdatum=datetime.date(2025, 2, 1))
+    bs.add_buchung(umsatz=3.66, soll_haben="S", konto="4683", gegenkonto="9632", belegdatum=datetime.date(2025, 2, 3))
 
     csv_a = tmp_path / "EXTF_a.csv"
     csv_b = tmp_path / "EXTF_b.csv"
@@ -231,8 +216,7 @@ def test_backward_compat_no_belege_no_zip(tmp_path):
     bs.save(str(csv_b))
 
     assert csv_a.exists() and csv_b.exists()
-    assert not (tmp_path / "belege.zip").exists(), \
-        "belege.zip must NOT be written when no Belege are attached"
+    assert not (tmp_path / "belege.zip").exists(), "belege.zip must NOT be written when no Belege are attached"
     assert csv_a.read_bytes() == csv_b.read_bytes()
 
 
@@ -273,10 +257,9 @@ def test_iterate_contains_remove_keeps_xml_and_zip_consistent(tmp_path):
     ns_uri = root.tag.split("}", 1)[0].lstrip("{")
     doc_filenames = {
         d.find("{{{}}}extension".format(ns_uri)).attrib["name"]
-        for d in root.findall(
-            "{{{0}}}content/{{{0}}}document".format(ns_uri))}
-    assert doc_filenames == {"b.pdf"}, (
-        "document.xml must list exactly the files present in the ZIP")
+        for d in root.findall("{{{0}}}content/{{{0}}}document".format(ns_uri))
+    }
+    assert doc_filenames == {"b.pdf"}, "document.xml must list exactly the files present in the ZIP"
 
     # Remove by Beleg object reference also works
     arch.remove(bb)
@@ -307,7 +290,8 @@ def test_belegarchiv_standalone_v060(tmp_path):
     """v06.0 schema works for standalone Belegarchiv save/load."""
     pdf = _make_pdf(str(tmp_path))
     arch = pydatev.Belegarchiv(
-        description="test", generating_system="pytest",
+        description="test",
+        generating_system="pytest",
         schema_version="v06.0",
     )
     arch.add(pydatev.Beleg(pdf, belegtyp=pydatev.BELEGTYP_RECHNUNGSAUSGANG))

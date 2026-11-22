@@ -7,6 +7,22 @@ versioning per [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
+### Added
+
+- Support decimal.Decimal besides float values for umsatz.
+- New integration test
+- Note for developers in README.md
+
+### Fixed
+
+- Loading a filename that does not include a preceding path (like 'EXTF_buchungsstapel.csv' without './' at the beginning) works as expected now. 
+
+### Changed
+
+- Code formatting using ruff.
+
 ## [0.2.0]
 
 ### Added

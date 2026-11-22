@@ -31,7 +31,7 @@ class DatevEntry(UserDict):
         super().__init__()
         self._fields = fields
         self._labels = [f['Label'] for f in fields]
-        self._aliases = dict([(f['LabelAlias'],f['Label']) for f in fields if ('LabelAlias' in f and not f['LabelAlias'] is None)])
+        self._aliases = dict([(f['LabelAlias'],f['Label']) for f in fields if ('LabelAlias' in f and f['LabelAlias'] is not None)])
         self._fields_dict = dict([(field['Label'],field) for field in fields])
         for field in self._fields:
             self[field['Label']] = None
@@ -40,20 +40,20 @@ class DatevEntry(UserDict):
         #check if key is valid
         if key in self._aliases:
             key = self._aliases[key]
-        if not key in self._labels:
+        if key not in self._labels:
             raise KeyError("Adding new keys is not allowed.")
         #check if datatype of value is valid
         format_type = self._fields_dict[key]['FormatType']
         decimal_places = int(self._fields_dict[key]['DecimalPlaces'])
-        if not value is None:
+        if value is not None:
             if format_type == 'Betrag':
                 if not isinstance(value, float):
                     raise DatevFormatError("The value for key '{}' needs to be of type float.".format(key))
             elif format_type == 'Datum':
-                if not type(value) is datetime.date: #Check with type(), because isinstance() would also accept datetime.datetime.
+                if type(value) is not datetime.date: #Check with type(), because isinstance() would also accept datetime.datetime.
                     raise DatevFormatError("The value for key '{}' needs to be of type datetime.date.".format(key))
             elif format_type == 'Datum JJJJMMTT':
-                if not type(value) is datetime.date: #Check with type(), because isinstance() would also accept datetime.datetime.
+                if type(value) is not datetime.date: #Check with type(), because isinstance() would also accept datetime.datetime.
                     raise DatevFormatError("The value for key '{}' needs to be of type datetime.date.".format(key))
             elif format_type == 'Konto':
                 if not isinstance(value, str):
@@ -163,7 +163,6 @@ class DatevEntry(UserDict):
         format_type = self._fields_dict[key]['FormatType']
         length = -1 if self._fields_dict[key]['Length'] is None else int(self._fields_dict[key]['Length'])
         decimal_places = int(self._fields_dict[key]['DecimalPlaces'])
-        max_length = length + 1 + decimal_places if format_type in ['Betrag','Zahl'] else length
         
         if len(string) == 0 or string == '""':
             value = None
@@ -242,9 +241,9 @@ class DatevDataCategory(object):
         
         self._metadata.parse(header_line)
         
-        if not self._metadata['Formatname'] in specifications:
+        if self._metadata['Formatname'] not in specifications:
             raise ValueError(f"The category_type {self._metadata['Formatname']} is not supported.")
-        if not str(self._metadata['Formatversion']) in specifications[self._metadata['Formatname']]:
+        if str(self._metadata['Formatversion']) not in specifications[self._metadata['Formatname']]:
             raise ValueError(f"The Format version {self._metadata['Formatversion']} is not supported.")
         
         self.parse_data(column_line, entry_lines)
@@ -317,7 +316,7 @@ class DatevDataCategory(object):
     def verify(self):
         '''Check wheter metadata and all entries are valid.'''
         errors = []
-        if not self._metadata['DATEV-Format-KZ'] in ['DTVF','EXTF']:
+        if self._metadata['DATEV-Format-KZ'] not in ['DTVF','EXTF']:
             errors.append("Metadata: DATEV-Format-KZ needs to be either DTVF or EXTF, but not " + str(self._metadata['DATEV-Format-KZ']))
         try:
             self._metadata.verify()

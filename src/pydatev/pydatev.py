@@ -494,11 +494,12 @@ class Buchungsstapel(DatevDataCategory):
         super().load(filename)
 
         # Check if there is a zip file named belege.zip or Belege.Zip or similar variants and load the file.
-        filenames = os.listdir(os.path.dirname(filename))
+        directory = os.path.dirname(filename) or os.curdir
+        filenames = os.listdir(directory)
         filenames_lowercase = [f.lower() for f in filenames]
-        if "belege.zip" in filenames_lowercase:
-            filename_zipfile = filenames[filenames_lowercase.index("belege.zip")]
-            path_zipfile = os.path.join(os.path.dirname(filename), filename_zipfile)
+        if 'belege.zip' in filenames_lowercase:
+            filename_zipfile = filenames[filenames_lowercase.index('belege.zip')]
+            path_zipfile = os.path.join(directory, filename_zipfile)
             self.belege.load(path_zipfile)
 
 
